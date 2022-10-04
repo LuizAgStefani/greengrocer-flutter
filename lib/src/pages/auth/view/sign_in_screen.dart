@@ -125,8 +125,6 @@ class SignInScreen extends StatelessWidget {
                                           email: email,
                                           password: password,
                                         );
-                                      } else {
-                                        print('Campos não válidos');
                                       }
 
                                       // Get.offNamed(PagesRoutes.baseRoute);

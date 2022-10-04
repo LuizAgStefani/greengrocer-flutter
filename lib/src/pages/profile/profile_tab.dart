@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greengrocer/src/pages/auth/controller/auth_controller.dart';
 import 'package:greengrocer/src/pages/common_widgets/custom_text_field.dart';
-import 'package:greengrocer/src/config/app_data.dart' as app_data;
+import 'package:greengrocer/src/services/validators.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -33,7 +33,7 @@ class _ProfileTabState extends State<ProfileTab> {
         children: [
           // Email
           CustomTextField(
-            initialValue: app_data.user.email,
+            initialValue: authController.user.email,
             icon: Icons.email,
             label: 'Email',
             readOnly: true,
@@ -41,7 +41,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
           // Nome
           CustomTextField(
-            initialValue: app_data.user.name,
+            initialValue: authController.user.name,
             icon: Icons.person,
             label: 'Nome',
             readOnly: true,
@@ -49,7 +49,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
           // Celular
           CustomTextField(
-            initialValue: app_data.user.phone,
+            initialValue: authController.user.phone,
             icon: Icons.phone,
             label: 'Celular',
             readOnly: true,
@@ -57,7 +57,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
           // CPF
           CustomTextField(
-            initialValue: app_data.user.cpf,
+            initialValue: authController.user.cpf,
             icon: Icons.file_copy,
             label: 'CPF',
             isSecret: true,
@@ -86,6 +86,11 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Future<bool?> updatePassword() {
+    final newPasswordController = TextEditingController();
+    final currentPasswordController = TextEditingController();
+
+    final formKey = GlobalKey<FormState>();
+
     return showDialog(
       context: context,
       builder: (context) {
@@ -99,58 +104,93 @@ class _ProfileTabState extends State<ProfileTab> {
                 padding: const EdgeInsets.all(16),
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Titulo
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        child: Text(
-                          'Atualização de senha',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-
-                      // Senha atual
-                      const CustomTextField(
-                        icon: Icons.lock,
-                        label: 'Senha atual',
-                        isSecret: true,
-                      ),
-
-                      // Senha nova
-                      const CustomTextField(
-                        icon: Icons.lock_outline,
-                        label: 'Nova senha',
-                        isSecret: true,
-                      ),
-
-                      // Confirmar senha nova
-                      const CustomTextField(
-                        icon: Icons.lock_outline,
-                        label: 'Confirmar nova senha',
-                        isSecret: true,
-                      ),
-
-                      // Botão de confirmação
-                      SizedBox(
-                        height: 45,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Titulo
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          child: Text(
+                            'Atualização de senha',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          onPressed: () {},
-                          child: const Text('Confirmar'),
                         ),
-                      ),
-                    ],
+
+                        // Senha atual
+                        CustomTextField(
+                          controller: currentPasswordController,
+                          icon: Icons.lock,
+                          label: 'Senha atual',
+                          isSecret: true,
+                          validator: passwordValidator,
+                        ),
+
+                        // Senha nova
+                        CustomTextField(
+                          icon: Icons.lock_outline,
+                          label: 'Nova senha',
+                          isSecret: true,
+                          validator: passwordValidator,
+                          controller: newPasswordController,
+                        ),
+
+                        // Confirmar senha nova
+                        CustomTextField(
+                          icon: Icons.lock_outline,
+                          label: 'Confirmar nova senha',
+                          isSecret: true,
+                          validator: (password) {
+                            final result = passwordValidator(password);
+
+                            if (result != null) {
+                              return result;
+                            }
+
+                            if (password != newPasswordController.text) {
+                              return 'As senhas não são equivalentes';
+                            }
+
+                            return null;
+                          },
+                        ),
+
+                        // Botão de confirmação
+                        SizedBox(
+                          height: 45,
+                          child: Obx(
+                            () => ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              onPressed: authController.isLoading.value
+                                  ? null
+                                  : () {
+                                      if (formKey.currentState!.validate()) {
+                                        authController.changePassword(
+                                          currentPassword:
+                                              currentPasswordController.text,
+                                          newPassword:
+                                              newPasswordController.text,
+                                        );
+                                      }
+                                    },
+                              child: authController.isLoading.value
+                                  ? const CircularProgressIndicator()
+                                  : const Text('Confirmar'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
